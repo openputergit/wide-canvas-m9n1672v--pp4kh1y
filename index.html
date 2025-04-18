@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Ambulance Service</title>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #map { height: 300px; width: 100%; }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-red-600 p-4 text-white">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold"><i class="bi bi-hospital"></i> Quick Ambulance</h1>
+            <button id="emergencyBtn" class="bg-white text-red-600 px-6 py-2 rounded-full font-bold pulse">
+                <i class="bi bi-telephone-fill"></i> Emergency
+            </button>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4">
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Current Location</h2>
+                <div id="map" class="rounded-lg mb-4"></div>
+                <div id="locationInfo" class="text-gray-600"></div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Nearby Facilities</h2>
+                <div id="facilitiesList" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div class="mt-6 grid md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <i class="bi bi-heart-pulse text-4xl text-red-600"></i>
+                <h3 class="text-lg font-bold mt-2">First Aid Guide</h3>
+                <p class="text-gray-600">Quick access to emergency first aid instructions</p>
+                <button onclick="showFirstAidGuide()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">View Guide</button>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <i class="bi bi-journal-medical text-4xl text-red-600"></i>
+                <h3 class="text-lg font-bold mt-2">Medical History</h3>
+                <p class="text-gray-600">Store important medical information</p>
+                <button onclick="showMedicalHistory()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">View History</button>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <i class="bi bi-people text-4xl text-red-600"></i>
+                <h3 class="text-lg font-bold mt-2">Emergency Contacts</h3>
+                <p class="text-gray-600">Manage your emergency contacts</p>
+                <button onclick="showEmergencyContacts()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">View Contacts</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let map, userMarker;
+        let facilities = [
+            { name: "City Hospital", lat: 0, lng: 0, distance: "0km", type: "Hospital" },
+            { name: "Emergency Care Center", lat: 0, lng: 0, distance: "0km", type: "Emergency Care" },
+            { name: "Ambulance Station 1", lat: 0, lng: 0, distance: "0km", type: "Ambulance" }
+        ];
+
+        // Initialize map
+        function initMap(lat, lng) {
+            map = L.map('map').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            userMarker = L.marker([lat, lng]).addTo(map);
+        }
+
+        // Get user location
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        initMap(latitude, longitude);
+                        updateFacilities(latitude, longitude);
+                        document.getElementById('locationInfo').textContent = 
+                            `Your location has been found. Help is on the way!`;
+                    },
+                    (error) => {
+                        console.error(error);
+                        Swal.fire('Error', 'Unable to get your location. Please enable location services.', 'error');
+                    }
+                );
+            }
+        }
+
+        // Update nearby facilities
+        function updateFacilities(userLat, userLng) {
+            const facilitiesList = document.getElementById('facilitiesList');
+            facilitiesList.innerHTML = '';
+
+            facilities.forEach(facility => {
+                // Simulate distance calculation
+                facility.distance = Math.round(Math.random() * 5) + "km";
+                
+                const facilityElement = document.createElement('div');
+                facilityElement.className = 'border-l-4 border-red-600 pl-4 py-2';
+                facilityElement.innerHTML = `
+                    <h3 class="font-bold">${facility.name}</h3>
+                    <p class="text-gray-600">${facility.type} • ${facility.distance} away</p>
+                    <button onclick="contactFacility('${facility.name}')" 
+                            class="mt-2 bg-red-600 text-white px-3 py-1 rounded text-sm">
+                        Contact
+                    </button>
+                `;
+                facilitiesList.appendChild(facilityElement);
+            });
+        }
+
+        // Emergency button handler
+        document.getElementById('emergencyBtn').addEventListener('click', () => {
+            Swal.fire({
+                title: 'Emergency Help',
+                text: 'We are locating the nearest ambulance. Stay calm.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Call Emergency',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    getUserLocation();
+                }
+            });
+        });
+
+        // Additional functionality handlers
+        function contactFacility(name) {
+            Swal.fire('Contacting Facility', `Connecting to ${name}...`, 'info');
+        }
+
+        function showFirstAidGuide() {
+            Swal.fire({
+                title: 'First Aid Guide',
+                html: `
+                    <div class="text-left">
+                        <p class="font-bold">Basic First Aid Steps:</p>
+                        <ul class="list-disc pl-5">
+                            <li>Check the scene is safe</li>
+                            <li>Check the victim's consciousness</li>
+                            <li>Call for emergency help</li>
+                            <li>Check breathing and circulation</li>
+                            <li>Treat severe bleeding</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'info'
+            });
+        }
+
+        function showMedicalHistory() {
+            Swal.fire({
+                title: 'Medical History',
+                text: 'Please log in to view your medical history',
+                icon: 'info'
+            });
+        }
+
+        function showEmergencyContacts() {
+            Swal.fire({
+                title: 'Emergency Contacts',
+                html: `
+                    <div class="text-left">
+                        <p><i class="bi bi-person"></i> John Doe: 123-456-7890</p>
+                        <p><i class="bi bi-person"></i> Emergency Services: 911</p>
+                        <button class="mt-4 bg-red-600 text-white px-4 py-2 rounded">
+                            Add New Contact
+                        </button>
+                    </div>
+                `,
+                icon: 'info'
+            });
+        }
+
+        // Initialize the application
+        getUserLocation();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
